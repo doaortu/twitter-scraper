@@ -392,3 +392,35 @@ func urlParse(u string) *url.URL {
 	}
 	return parsed
 }
+
+func ParseUserQuery(queryStr string) map[string]string {
+	queryParts := strings.Fields(queryStr)
+
+	queryMap := make(map[string]string)
+
+	// Parse the first part of the query string to get the username
+	if len(queryParts) > 0 {
+		queryMap["username"] = queryParts[0]
+	}
+
+	// if there is only one part, return the query map
+	if len(queryParts) == 1 {
+		return queryMap
+	}
+
+	// Define regex patterns for different query types
+	patterns := map[string]*regexp.Regexp{
+		"max_id": regexp.MustCompile(`max_id:(\d+)`),
+	}
+
+	// Parse the remaining parts of the query string
+	for _, part := range queryParts[1:] {
+		for queryType, pattern := range patterns {
+			if matches := pattern.FindStringSubmatch(part); len(matches) > 0 {
+				queryMap[queryType] = matches[1]
+			}
+		}
+	}
+
+	return queryMap
+}

@@ -13,7 +13,11 @@ func (s *Scraper) GetTweets(ctx context.Context, user string, maxTweetsNbr int) 
 }
 
 // FetchTweets gets tweets for a given user, via the Twitter frontend API.
-func (s *Scraper) FetchTweets(user string, maxTweetsNbr int, cursor string) ([]*Tweet, string, error) {
+func (s *Scraper) FetchTweets(userQuery string, maxTweetsNbr int, cursor string) ([]*Tweet, string, error) {
+	// get username from userQuery, by splitting on the first space
+	queries := ParseUserQuery(userQuery)
+	user := queries["username"]
+
 	userID, err := s.GetUserIDByScreenName(user)
 	if err != nil {
 		return nil, "", err
@@ -22,11 +26,20 @@ func (s *Scraper) FetchTweets(user string, maxTweetsNbr int, cursor string) ([]*
 	if s.isOpenAccount {
 		return s.FetchTweetsByUserIDLegacy(userID, maxTweetsNbr, cursor)
 	}
-	return s.FetchTweetsByUserID(userID, maxTweetsNbr, cursor)
+	return s.FetchTweetsByUserID(userQuery, maxTweetsNbr, cursor)
 }
 
 // FetchTweetsByUserID gets tweets for a given userID, via the Twitter frontend GraphQL API.
-func (s *Scraper) FetchTweetsByUserID(userID string, maxTweetsNbr int, cursor string) ([]*Tweet, string, error) {
+func (s *Scraper) FetchTweetsByUserID(userQuery string, maxTweetsNbr int, cursor string) ([]*Tweet, string, error) {
+	// get username from userQuery, by splitting on the first space
+	queries := ParseUserQuery(userQuery)
+	user := queries["username"]
+
+	userID, err := s.GetUserIDByScreenName(user)
+	if err != nil {
+		return nil, "", err
+	}
+
 	if maxTweetsNbr > 200 {
 		maxTweetsNbr = 200
 	}
@@ -38,6 +51,7 @@ func (s *Scraper) FetchTweetsByUserID(userID string, maxTweetsNbr int, cursor st
 
 	variables := map[string]interface{}{
 		"userId":                                 userID,
+		"max_id":                                 queries["max_id"],
 		"count":                                  maxTweetsNbr,
 		"includePromotedContent":                 false,
 		"withQuickPromoteEligibilityTweetFields": false,
